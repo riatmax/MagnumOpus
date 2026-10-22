@@ -3,26 +3,54 @@ using UnityEngine.InputSystem;
 
 public class InputManager : MonoBehaviour
 {
+    // Input Manager Singleton
+    public static InputManager Instance { get; private set; }
+
     private PlayerActions playerActions;
-    
-    // Input Map state
-    public enum InputMap
-    {
-        Gameplay,
-        UI
-    }
-    public InputMap CurrMap { get; private set; }
 
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         playerActions = new PlayerActions();
     }
 
-    // Input cleanup methods:
-    private void OnEnable() => SwitchInputMap(CurrMap);
-    private void OnDisable() => playerActions.Disable();
-    private void OnDestroy() => playerActions.Dispose();
+    // Input Map state
+    public enum InputMap
+    {
+        UI,
+        Gameplay
+    }
+    public InputMap CurrMap { get; private set; }
 
+    // Input cleanup methods:
+    private void OnEnable()
+    {
+        if (Instance != this) return;
+        SwitchInputMap(CurrMap);
+    }
+    private void OnDisable()
+    {
+        if (Instance != this) return;
+        playerActions.Disable();
+    }
+    private void OnDestroy()
+    {
+        if (Instance != this) return;
+        playerActions.Dispose();
+        Instance = null;
+    }
+
+    // Switch the current Input Map to newMap
     public void SwitchInputMap(InputMap newMap)
     {
         playerActions.Disable();
@@ -33,8 +61,8 @@ public class InputManager : MonoBehaviour
             case InputMap.Gameplay:        
                 playerActions.Gameplay.Enable();
                 break;
-            case InputMap.UI: // Implement this when we have the map ready
-                // playerActions.UI.Enable();
+            case InputMap.UI: 
+                playerActions.UI.Enable();
                 break;
         }
     }
