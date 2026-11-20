@@ -1,11 +1,45 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
 
+[DefaultExecutionOrder(-100)]
 public class InputManager : MonoBehaviour
 {
     // Input Manager Singleton
     public static InputManager Instance { get; private set; }
 
+
+    // Input Map state
+    public enum InputMap
+    {
+        Gameplay,
+        UI
+    }
+    public InputMap CurrMap { get; private set; }
+    [SerializeField] private InputMap defaultMap = InputMap.Gameplay;
+
+    // Stick/WASD/Mouse input values, read these in other scripts
+    public Vector2 MoveInput { get; private set; }
+    public Vector2 LookInput { get; private set; }
+
+    // Sprinting?
+    public bool SprintHeld { get; private set; }
+
+    // Events for Gameplay binds
+    public event Action OnDodgePressed;
+    public event Action OnLockOnPressed;
+    public event Action OnLightAttackPressed;
+    public event Action OnHeavyAttackPressed;
+    public event Action OnInteractPressed;
+    public event Action OnGameplayPausePressed;
+
+    //Events for UI binds
+    public event Action OnUIPausePressed;
+
+    // Map switching event
+    public event Action<InputMap> OnInputMapChanged;
+
+    // Player Input Actions
     private PlayerActions playerActions;
 
     private void Awake()
@@ -22,15 +56,32 @@ public class InputManager : MonoBehaviour
         }
 
         playerActions = new PlayerActions();
+
+        CurrMap = defaultMap;
+
+        playerActions.Gameplay.Dodge.performed += HandleDodge;
+        playerActions.Gameplay.LockOn.performed += HandleLockOn;
+        playerActions.Gameplay.LightAttack.performed += HandleLightAttack;
+        playerActions.Gameplay.HeavyAttack.performed += HandleHeavyAttack;
+        playerActions.Gameplay.Interact.performed += HandleInteract;
+        playerActions.Gameplay.Pause.performed += HandleGameplayPause;
+
+        playerActions.UI.Pause.performed += HandleUIPause;
     }
 
-    // Input Map state
-    public enum InputMap
+    private void Update()
     {
-        UI,
-        Gameplay
+        if (CurrMap == InputMap.Gameplay)
+        {
+            MoveInput = playerActions.Gameplay.Move.ReadValue<Vector2>();
+            LookInput = playerActions.Gameplay.Look.ReadValue<Vector2>();
+            SprintHeld = playerActions.Gameplay.Sprint.IsPressed();
+        }
+        if (CurrMap == InputMap.UI)
+        {
+            MoveInput = playerActions.UI.Move.ReadValue<Vector2>();
+        }
     }
-    public InputMap CurrMap { get; private set; }
 
     // Input cleanup methods:
     private void OnEnable()
@@ -46,6 +97,16 @@ public class InputManager : MonoBehaviour
     private void OnDestroy()
     {
         if (Instance != this) return;
+
+        playerActions.Gameplay.Dodge.performed -= HandleDodge;
+        playerActions.Gameplay.LockOn.performed -= HandleLockOn;
+        playerActions.Gameplay.LightAttack.performed -= HandleLightAttack;
+        playerActions.Gameplay.HeavyAttack.performed -= HandleHeavyAttack;
+        playerActions.Gameplay.Interact.performed -= HandleInteract;
+        playerActions.Gameplay.Pause.performed -= HandleGameplayPause;
+
+        playerActions.UI.Pause.performed -= HandleUIPause;
+
         playerActions.Dispose();
         Instance = null;
     }
@@ -53,6 +114,19 @@ public class InputManager : MonoBehaviour
     // Switch the current Input Map to newMap
     public void SwitchInputMap(InputMap newMap)
     {
+        bool alreadyActive = false;
+        switch (newMap)
+        {
+            case InputMap.Gameplay:
+                alreadyActive = playerActions.Gameplay.enabled;
+                break;
+            case InputMap.UI:
+                alreadyActive = playerActions.UI.enabled;
+                break;
+        }
+
+        if (alreadyActive) return;
+
         playerActions.Disable();
         CurrMap = newMap;
 
@@ -65,5 +139,16 @@ public class InputManager : MonoBehaviour
                 playerActions.UI.Enable();
                 break;
         }
+
+        OnInputMapChanged?.Invoke(CurrMap);
     }
+
+    // Action Handlers
+    private void HandleDodge(InputAction.CallbackContext ctx) => OnDodgePressed?.Invoke();
+    private void HandleLockOn(InputAction.CallbackContext ctx) => OnLockOnPressed?.Invoke();
+    private void HandleLightAttack(InputAction.CallbackContext ctx) => OnLightAttackPressed?.Invoke();
+    private void HandleHeavyAttack(InputAction.CallbackContext ctx) => OnHeavyAttackPressed?.Invoke();
+    private void HandleInteract(InputAction.CallbackContext ctx) => OnInteractPressed?.Invoke();
+    private void HandleGameplayPause(InputAction.CallbackContext ctx) => OnGameplayPausePressed?.Invoke();
+    private void HandleUIPause(InputAction.CallbackContext ctx) => OnUIPausePressed?.Invoke();
 }
