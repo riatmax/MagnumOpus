@@ -19,8 +19,9 @@ public class InputManager : MonoBehaviour
     [SerializeField] private InputMap defaultMap = InputMap.Gameplay;
 
     // Stick/WASD/Mouse input values, read these in other scripts
-    public Vector2 MoveInput { get; private set; }
+    public Vector2 PlayerMoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    public Vector2 UIMoveInput { get; private set; }
 
     // Sprinting?
     public bool SprintHeld { get; private set; }
@@ -71,15 +72,16 @@ public class InputManager : MonoBehaviour
 
     private void Update()
     {
-        if (CurrMap == InputMap.Gameplay)
+        switch (CurrMap)
         {
-            MoveInput = playerActions.Gameplay.Move.ReadValue<Vector2>();
-            LookInput = playerActions.Gameplay.Look.ReadValue<Vector2>();
-            SprintHeld = playerActions.Gameplay.Sprint.IsPressed();
-        }
-        if (CurrMap == InputMap.UI)
-        {
-            MoveInput = playerActions.UI.Move.ReadValue<Vector2>();
+            case InputMap.Gameplay:
+                PlayerMoveInput = playerActions.Gameplay.Move.ReadValue<Vector2>();
+                LookInput = playerActions.Gameplay.Look.ReadValue<Vector2>();
+                SprintHeld = playerActions.Gameplay.Sprint.IsPressed();
+                break;
+            case InputMap.UI:
+                UIMoveInput = playerActions.UI.Move.ReadValue<Vector2>();
+                break;
         }
     }
 
@@ -134,9 +136,13 @@ public class InputManager : MonoBehaviour
         {
             case InputMap.Gameplay:        
                 playerActions.Gameplay.Enable();
+                UIMoveInput = Vector2.zero;
                 break;
             case InputMap.UI: 
                 playerActions.UI.Enable();
+                PlayerMoveInput = Vector2.zero;
+                LookInput = Vector2.zero;
+                SprintHeld = false;
                 break;
         }
 
