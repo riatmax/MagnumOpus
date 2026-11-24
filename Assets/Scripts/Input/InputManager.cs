@@ -8,7 +8,6 @@ public class InputManager : MonoBehaviour
     // Input Manager Singleton
     public static InputManager Instance { get; private set; }
 
-
     // Input Map state
     public enum InputMap
     {
@@ -25,6 +24,9 @@ public class InputManager : MonoBehaviour
 
     // Sprinting?
     public bool SprintHeld { get; private set; }
+
+    // Using a controller?
+    public bool LookIsGamepad { get; private set; }
 
     // Events for Gameplay binds
     public event Action OnDodgePressed;
@@ -78,6 +80,11 @@ public class InputManager : MonoBehaviour
                 PlayerMoveInput = playerActions.Gameplay.Move.ReadValue<Vector2>();
                 LookInput = playerActions.Gameplay.Look.ReadValue<Vector2>();
                 SprintHeld = playerActions.Gameplay.Sprint.IsPressed();
+                
+                if (playerActions.Gameplay.Look.activeControl != null)
+                {
+                    LookIsGamepad = playerActions.Gameplay.Look.activeControl.device is Gamepad;
+                }
                 break;
             case InputMap.UI:
                 UIMoveInput = playerActions.UI.Move.ReadValue<Vector2>();
